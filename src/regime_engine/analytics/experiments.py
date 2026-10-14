@@ -86,7 +86,7 @@ DEFAULT_VARIANTS: tuple[Variant, ...] = (
     ),
     Variant(
         "tactical_stops",
-        "Original Phase 4 design: regime-routed + 3-ATR stops",
+        "Original design: regime-routed + 3-ATR stops",
         {"strategy": _TACTICAL, "risk": {"trailing_stop_atr": 3.0}},
     ),
     Variant(

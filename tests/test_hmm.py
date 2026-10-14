@@ -1,4 +1,4 @@
-"""Phase 2 tests: Gaussian HMM (math, hmmlearn parity, recovery) and canonical regime mapping."""
+"""Gaussian HMM (math, hmmlearn parity, recovery) and canonical regime mapping."""
 
 from __future__ import annotations
 
@@ -489,7 +489,7 @@ class TestRegimeMapper:
 # ============================================================================================
 
 
-def test_phase2_pipeline_on_synthetic_bars(ohlcv_factory: OHLCVFactory) -> None:
+def test_fit_and_map_pipeline_on_synthetic_bars(ohlcv_factory: OHLCVFactory) -> None:
     cfg = EngineConfig.from_dict({"hmm": {"n_restarts": 3}})
     features = FeatureEngine(cfg.features).compute(ohlcv_factory(900, seed=17))
     scaler = RollingWindowScaler.from_config(cfg.scaling)

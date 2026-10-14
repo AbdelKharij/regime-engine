@@ -1,4 +1,4 @@
-"""Phase 3 tests: walk-forward HMM engine, online filtering, hysteresis, causality."""
+"""Walk-forward HMM engine, online filtering, hysteresis, causality."""
 
 from __future__ import annotations
 

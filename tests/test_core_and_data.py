@@ -1,4 +1,4 @@
-"""Phase 1 tests: configuration, logging, ingestion/validation, look-ahead checks, features,
+"""Core and data layer: configuration, logging, ingestion/validation, look-ahead checks, features,
 and rolling-window scaling."""
 
 from __future__ import annotations

@@ -337,7 +337,7 @@ class StrategyConfig:
 
     @classmethod
     def tactical(cls) -> StrategyConfig:
-        """The Phase 4 regime-routed design, kept for the ablation study."""
+        """The original regime-routed design, kept for the ablation study."""
         return cls(
             bull_low=StrategyKind.MOMENTUM,
             bull_high=StrategyKind.MOMENTUM,

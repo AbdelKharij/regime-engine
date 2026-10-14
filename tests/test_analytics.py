@@ -1,4 +1,4 @@
-"""Phase 6 tests: metrics and significance, regime diagnostics, ablation study, tear sheet, CLI."""
+"""Analytics: metrics and significance, regime diagnostics, ablation study, tear sheet, CLI."""
 
 from __future__ import annotations
 

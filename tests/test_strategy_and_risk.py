@@ -1,4 +1,4 @@
-"""Phase 4 tests: strategies, regime routing, position sizing, VaR, risk rules, stops, risk desk."""
+"""Strategies, regime routing, position sizing, VaR, risk rules, stops, risk desk."""
 
 from __future__ import annotations
 

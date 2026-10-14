@@ -1,4 +1,4 @@
-"""Phase 5 tests: costs, portfolio ledger, execution latency, FHS VaR, and the backtester."""
+"""Execution costs, portfolio ledger, execution latency, FHS VaR, and the backtester."""
 
 from __future__ import annotations
 

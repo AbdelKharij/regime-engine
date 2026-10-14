@@ -43,7 +43,7 @@ regime-engine/
 │   ├── portfolio/                 # cash/position ledger, borrow accrual
 │   ├── backtest/engine.py         # event-driven Backtester + independent return-space cross-check
 │   └── analytics/                 # metrics & significance (PSR/DSR/bootstrap), diagnostics, ablation, HTML tear sheet
-└── tests/                         # test_phase1..6.py — unit, property, parity (hmmlearn), causality canaries
+└── tests/                         # one file per layer: unit, property, hmmlearn parity, causality canaries
 ```
 
 **Dependencies:** `numpy`, `pandas`, `scipy`, `pydantic>=2`, `pyyaml`, `yfinance`, `pyarrow`, `matplotlib`, `jinja2`. Dev: `pytest`, `hypothesis`, `mypy`, `ruff`, `hmmlearn` (used **only** as a test oracle, see §3.5). Python ≥ 3.11.
