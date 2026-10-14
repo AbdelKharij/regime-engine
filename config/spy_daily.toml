@@ -1,0 +1,121 @@
+# Default experiment: SPY daily bars, 4-regime Gaussian HMM.
+# Every key here is validated by regime_engine.core.config.EngineConfig; unknown keys are rejected.
+
+[run]
+seed = 42
+annualization = 252
+initial_capital = 1_000_000.0
+
+[data]
+symbol = "SPY"
+benchmark = "SPY"
+start = 2005-01-01
+end = 2026-09-30            # pinned for reproducibility (and so the data cache is used)
+source = "yfinance"
+raw_dir = "data/raw"
+cache_dir = "data/cache"
+max_abs_log_return = 0.25
+max_calendar_gap_days = 7
+allow_zero_volume = false
+extreme_return_allowlist = []
+
+[features]
+hl_window = 21
+volume_window = 21
+hl_method = "parkinson"
+
+[scaling]
+window = 252
+min_periods = 63
+method = "zscore"
+ddof = 0
+include_current_bar = true
+
+[training]
+window_type = "expanding"   # every refit trains on all history (keeps 2008/2020 in-sample)
+train_window = 1260         # used only when window_type = "rolling"
+min_train_bars = 1260       # ~5 years of features before the first fit
+refit_every = 21
+
+[hmm]
+n_states = 4
+covariance_ridge = 1.0e-6
+max_iter = 500
+tol = 1.0e-4
+n_restarts = 10
+init_self_transition = 0.9
+sticky_prior = 0.0
+min_state_occupancy = 0.03
+kmeans_iter = 25
+refit_restarts = 2          # warm start from the previous model + 1 fresh k-means++ restart
+
+[mapping]
+vol_source = "return_std"
+return_separation_tol = 1.0e-5
+vol_split_rel_tol = 0.05
+
+[regime]
+confirm_prob = 0.6
+confirm_bars = 2
+
+[cooldown]
+mode = "reduce_only"
+bars = 2
+
+[strategy]
+# Headline = risk overlay: always long, the HMM acts through sizing and the risk desk.
+# Detected regimes classify volatility, not direction (docs/ARCHITECTURE.md §13).
+# The tactical design (ablation) is: momentum / momentum / mean_reversion / defensive.
+bull_low = "long"
+bull_high = "long"
+bear_low = "long"
+bear_high = "long"
+routing = "hard"
+momentum_lookbacks = [21, 63, 252]
+momentum_long_only = true
+bull_high_damping = 0.5
+mean_reversion_window = 20
+mean_reversion_scale = 2.0
+defensive_direction = 0.5
+
+[sizing]
+method = "regime_vol_target"   # "realized_vol_target" = the no-HMM baseline
+target_vol_annual = 0.12
+max_leverage = 1.5
+kelly_cap = false            # see docs/ARCHITECTURE.md §13
+kelly_fraction = 0.25
+risk_free_annual = 0.0
+realized_vol_window = 21
+
+[risk]
+allow_short = false
+var_alpha = 0.99
+var_window = 252
+var_budget = 0.025
+dd_breaker = 0.20
+dd_halt_bars = 21
+# trailing_stop_atr omitted -> no stops (3-ATR stops cost 0.20 Sharpe on SPY; see §13)
+# profit_target_atr omitted -> no profit target
+atr_window = 14
+stop_lockout_bars = 5
+var_method = "filtered_historical"
+fhs_min_obs = 100
+
+[backtest]
+rebalance_threshold = 0.02
+
+[execution]
+commission_bps = 0.5
+min_commission = 1.0
+half_spread_bps = 1.0
+borrow_fee_bps_annual = 50.0
+impact_coefficient = 0.1
+adv_window = 20
+latency_bars = 1
+
+[logging]
+level = "INFO"              # events.jsonl
+console = true
+console_level = "WARNING"   # terminal
+json_file = true
+log_dir = "runs"

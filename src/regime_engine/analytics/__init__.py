@@ -1,0 +1,67 @@
+"""Performance metrics, regime diagnostics, ablation study and the HTML tear sheet."""
+
+from regime_engine.analytics.diagnostics import (
+    accuracy,
+    decoded_vs_realized,
+    filtered_vs_smoothed,
+    mean_transition_matrix,
+    realized_regime_labels,
+    regime_attribution,
+    var_backtest_table,
+)
+from regime_engine.analytics.experiments import (
+    DEFAULT_VARIANTS,
+    HEADLINE,
+    AblationResult,
+    Variant,
+    apply_overrides,
+    run_ablation,
+    turnover,
+)
+from regime_engine.analytics.metrics import (
+    DrawdownEpisode,
+    PerformanceSummary,
+    SharpeDifference,
+    bootstrap_sharpe_difference,
+    cagr,
+    deflated_sharpe_ratio,
+    drawdown_episodes,
+    expected_max_sharpe,
+    probabilistic_sharpe_ratio,
+    sharpe_ratio,
+    sharpe_standard_error,
+    sortino_ratio,
+    summarize,
+)
+from regime_engine.analytics.report import TearSheet
+
+__all__ = [
+    "DEFAULT_VARIANTS",
+    "HEADLINE",
+    "AblationResult",
+    "DrawdownEpisode",
+    "PerformanceSummary",
+    "SharpeDifference",
+    "TearSheet",
+    "Variant",
+    "accuracy",
+    "apply_overrides",
+    "bootstrap_sharpe_difference",
+    "cagr",
+    "decoded_vs_realized",
+    "deflated_sharpe_ratio",
+    "drawdown_episodes",
+    "expected_max_sharpe",
+    "filtered_vs_smoothed",
+    "mean_transition_matrix",
+    "probabilistic_sharpe_ratio",
+    "realized_regime_labels",
+    "regime_attribution",
+    "run_ablation",
+    "sharpe_ratio",
+    "sharpe_standard_error",
+    "sortino_ratio",
+    "summarize",
+    "turnover",
+    "var_backtest_table",
+]

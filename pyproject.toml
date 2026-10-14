@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "regime-engine"
+version = "0.1.0"
+description = "Regime-switching (Gaussian HMM) trading and risk engine with a from-scratch event-driven backtester."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.scripts]
+regime-engine = "regime_engine.cli:main"
+
+[project.optional-dependencies]
+yahoo = ["yfinance>=0.2.40"]
+dev = ["pytest>=8.0", "mypy>=1.10", "ruff>=0.5", "pandas-stubs>=2.1", "hmmlearn>=0.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.mypy]
+# Strict typing is enforced on the library; tests are exercised by pytest.
+files = ["src"]
+python_version = "3.10"
+strict = true
+mypy_path = "src"
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["yfinance", "yfinance.*", "hmmlearn", "hmmlearn.*", "scipy", "scipy.*", "matplotlib", "matplotlib.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "PT"]
+
+[tool.ruff.lint.per-file-ignores]
+# HTML templating: long literal lines and deliberate typographic characters (en dash, minus).
+"src/regime_engine/analytics/report.py" = ["E501", "RUF001"]
+
+[tool.ruff.lint.pep8-naming]
+# `X` is the conventional name for a design/feature matrix.
+ignore-names = ["X"]
