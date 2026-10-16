@@ -79,4 +79,58 @@ Results.
 
 ## Results
 
-*(Appended after the run.)*
+*Appended after the run, which was executed once on 2026-10-15 at commit `0f2d61b`. The
+protocol above is unchanged. The bug rule was not needed: no crash and no code change.*
+
+### Per asset (walk-forward, after costs)
+
+| Asset | Active period | Overlay CAGR | B&H CAGR | Overlay Sharpe | Baseline Sharpe | Tactical Sharpe | B&H Sharpe | Overlay vs B&H p | Overlay MDD | B&H MDD | Turnover overlay / baseline | Overlay DSR |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| QQQ | 2010-02 → 2026-09 | 12.7% | 19.8% | 1.02 | 1.02 | 0.67 | 0.98 | 0.58 | 18.2% | 35.1% | 2.3× / 4.7× | 99.8% |
+| IWM | 2010-02 → 2026-09 | 5.7% | 11.3% | 0.53 | 0.43 | 0.36 | 0.59 | 0.48 | 20.3% | 41.1% | 1.7× / 4.4× | 93.0% |
+| EFA | 2010-02 → 2026-09 | 3.9% | 7.5% | 0.37 | 0.34 | 0.05 | 0.49 | 0.27 | 22.2% | 34.2% | 2.5× / 5.7× | 66.2% |
+| TLT | 2010-02 → 2026-09 | 2.7% | 1.9% | 0.28 | 0.26 | 0.09 | 0.20 | 0.32 | 37.7% | 48.4% | 2.1× / 6.1× | 71.9% |
+| GLD | 2010-02 → 2026-09 | 6.9% | 8.1% | 0.61 | 0.58 | 0.42 | 0.55 | 0.30 | 39.0% | 45.6% | 2.1× / 5.9× | 93.0% |
+| BTC-USD | 2018-03 → 2026-09 | 8.6% | 30.0% | 0.76 | 0.60 | 0.36 | 0.74 | 0.87 | 26.4% | 76.6% | 2.0× / 2.7× | 89.9% |
+
+Data hashes for each asset are recorded in `reports/oos/summary.csv`. Each asset also has a
+tear sheet and an ablation CSV in `reports/oos/`.
+
+### Verdicts (pre-registered rules)
+
+| ID | Hypothesis | Holds on | Verdict |
+|---|---|---|---|
+| H1 | overlay max drawdown < buy & hold max drawdown | 6/6 | **replicates** |
+| H2 | overlay Sharpe > buy & hold Sharpe | 4/6 (not IWM, EFA) | **partially replicates** |
+| H3 | overlay turnover < realised-vol baseline turnover | 6/6 | **replicates** |
+| H4 | overlay Sharpe ≥ realised-vol baseline Sharpe − 0.05 | 6/6 | **replicates** |
+| H5 | tactical Sharpe < overlay Sharpe | 6/6 | **replicates** |
+| H6 | overlay deflated Sharpe > 0.95 | 1/6 (QQQ) | **fails to replicate** |
+
+### Interpretation
+
+* **What generalises:**
+  * **The drawdown reduction.** Max drawdown is lower on every asset, with reductions between
+    7 points (GLD) and 50 points (BTC).
+  * **HMM sizing is cheaper to trade.** It needs 26–65% less turnover than realised-vol sizing.
+  * **Regime-routed direction signals lose.** They underperform the overlay on all six assets.
+* **What does not:**
+  * **No significant risk-adjusted outperformance.** No overlay-vs-buy-and-hold Sharpe
+    difference is significant (p from 0.27 to 0.87), and the point estimate is worse on IWM
+    and EFA.
+  * **The SPY deflated Sharpe does not carry over.** Except on QQQ, the overlay's Sharpe
+    cannot be distinguished from the best of nine zero-skill trials (H6). On SPY it could
+    (DSR 99.7%). That result was helped by SPY's strong 2010–2026 run and should not be read
+    as general.
+* **The cost of the overlay is lower CAGR.** It runs at about 12% volatility, so on
+    high-return assets (QQQ, BTC) it gives up a lot of return in exchange for the shallower
+    drawdowns.
+
+### Exploratory observations (not pre-registered, so treat as hypotheses)
+
+* HMM sizing beat realised-vol sizing on Sharpe on 5 of 6 assets, with a tie on QQQ. On SPY
+  it was also ahead. No single difference is significant (p from 0.08 to 1.0).
+* **Stops are asset-dependent.** 3-ATR stops hurt on QQQ, IWM, EFA and TLT, as on SPY, but
+  *helped* on GLD (Sharpe 0.89 vs 0.61) and BTC-USD (1.06 vs 0.76). The SPY-based decision to
+  turn stops off by default does not generalise to trending, high-volatility assets.
+* The 0.25-Kelly cap lowered Sharpe on 5 of 6 assets, consistent with SPY.
