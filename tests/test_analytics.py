@@ -242,8 +242,11 @@ def test_tear_sheet_renders(ablation: AblationResult, bars: pd.DataFrame, tmp_pa
     text = path.read_text()
     for heading in ("Performance", "Ablation study", "Regimes", "Risk", "Method"):
         assert f"<h2>{heading}</h2>" in text
-    assert text.count("data:image/png;base64,") == 10
+    assert text.count("data:image/png;base64,") == 11
     assert "nan%" not in text.lower()
+    exported = TearSheet(ablation, bars).export_figures(tmp_path / "img", ["growth", "ablation"])
+    assert sorted(exported) == ["ablation", "growth"]
+    assert all(p.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n" for p in exported.values())
 
 
 def test_cli_backtest_and_report(tmp_path: Path) -> None:

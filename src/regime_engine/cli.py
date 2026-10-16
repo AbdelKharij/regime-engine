@@ -52,9 +52,10 @@ def _report(args: argparse.Namespace) -> int:
     ablation = run_ablation(config, bars, progress=lambda message: print(message, flush=True))
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    report = TearSheet(ablation, bars).render(
-        out_dir / f"{config.data.symbol.lower()}_tear_sheet.html"
-    )
+    sheet = TearSheet(ablation, bars)
+    report = sheet.render(out_dir / f"{config.data.symbol.lower()}_tear_sheet.html")
+    if args.figures:
+        sheet.export_figures(Path(args.figures))
     ablation.table.to_csv(out_dir / f"{config.data.symbol.lower()}_ablation.csv")
     if args.runs:
         ablation.results[ablation.headline].save(Path(args.runs))
@@ -76,6 +77,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     report.add_argument("--config", type=Path, required=True)
     report.add_argument("--out", type=Path, default=Path("reports"))
     report.add_argument("--runs", type=Path, default=None, help="also save the headline run here")
+    report.add_argument(
+        "--figures", type=Path, default=None, help="also export the charts as PNGs here"
+    )
     report.set_defaults(handler=_report)
 
     args = parser.parse_args(argv)

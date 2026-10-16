@@ -34,4 +34,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: pytest -q
+      - run: pytest -q --cov=regime_engine --cov-report=term --cov-fail-under=90

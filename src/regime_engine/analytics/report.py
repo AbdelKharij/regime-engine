@@ -12,7 +12,7 @@ import base64
 import html
 import io
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -330,6 +330,56 @@ def var_chart(var_forecasts: pd.DataFrame, column: str = "var_fhs") -> str:
     return _png(fig)
 
 
+def ablation_chart(table: pd.DataFrame, headline: str) -> str:
+    """Sharpe ratio ± 1 standard error per variant; the headline is emphasised, others muted.
+
+    A star marks variants whose Sharpe differs from the headline at p < 0.05 (paired
+    stationary bootstrap).
+    """
+    rows = table.sort_values("sharpe")
+    n = len(rows)
+    fig, ax = _figure(width=10.0, height=0.42 * n + 0.9)
+    ax.grid(axis="y", visible=False)
+    ax.grid(axis="x", color=GRID, linewidth=0.6)
+    head_sharpe = float(table["sharpe"].astype(float).to_dict()[headline])
+    ax.axvline(head_sharpe, color=SERIES[0], linewidth=0.8, linestyle=(0, (3, 3)), zorder=1)
+    labels = []
+    for y, (name, row) in enumerate(rows.iterrows()):
+        sharpe, se = float(row["sharpe"]), float(row["sharpe_se"])
+        color = SERIES[0] if name == headline else (SERIES[1] if name == "buy_and_hold" else MUTED)
+        ax.errorbar(
+            sharpe,
+            y,
+            xerr=se,
+            fmt="o",
+            color=color,
+            markersize=6,
+            elinewidth=1.4,
+            capsize=0,
+            zorder=3,
+        )
+        p_value = float(row["diff_p_value"])
+        star = " *" if math.isfinite(p_value) and p_value < 0.05 else ""
+        ax.annotate(
+            f"{sharpe:.2f}{star}",
+            (sharpe + se, y),
+            xytext=(6, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=8.5,
+            color=INK_2,
+        )
+        labels.append(str(row["description"]).split(" (")[0])
+    ax.set_yticks(range(n), labels, fontsize=8.5, color=INK_2)
+    ax.set_xlabel(
+        "Sharpe ratio (± 1 standard error)  ·  * differs from headline at p < 0.05",
+        color=INK_2,
+        fontsize=9,
+    )
+    ax.spines["left"].set_visible(False)
+    return _png(fig)
+
+
 # --------------------------------------------------------------------------------------------
 # Tables
 # --------------------------------------------------------------------------------------------
@@ -427,15 +477,12 @@ class TearSheet:
         out_path.write_text(self.html(), encoding="utf-8")
         return out_path
 
-    def html(self) -> str:
+    def _curves(self) -> dict[str, pd.Series]:
         ab = self._ablation
         head = ab.results[ab.headline]
-        cfg = head.config
-        periods = cfg.run.annualization
-        close = self._bars["close"]
         start = head.first_decision
-        assert start is not None, "headline run never became ready"
-
+        if start is None:
+            raise ValueError("headline run never became ready")
         bench = head.benchmark.loc[head.benchmark.index > start]
         curves: dict[str, pd.Series] = {
             "Overlay (headline)": head.active_equity.loc[bench.index[0] :]
@@ -445,6 +492,57 @@ class TearSheet:
                 bench.index[0] :
             ]
         curves[f"{head.symbol} buy & hold"] = bench
+        return curves
+
+    def figures(self) -> dict[str, str]:
+        """Every chart as a base64 PNG, keyed by name."""
+        ab = self._ablation
+        head = ab.results[ab.headline]
+        close = self._bars["close"]
+        start = head.first_decision
+        curves = self._curves()
+        transition_mean, transition_std = mean_transition_matrix(head)
+        transition_mean.index.name, transition_mean.columns.name = "from", "to"
+        return {
+            "growth": growth_chart(curves),
+            "drawdown": drawdown_chart(curves),
+            "rolling": rolling_sharpe_chart(curves),
+            "ablation": ablation_chart(ab.table, ab.headline),
+            "timeline": regime_timeline_chart(close, head.regimes["regime"]),
+            "probs": probability_chart(probability_frame(head)),
+            "exposure": exposure_chart(head.equity["weight"].loc[start:]),
+            "transition": heatmap(
+                transition_mean, fmt=lambda v: f"{v:.3f}", annotations=transition_std
+            ),
+            "fvs": heatmap(_row_normalize(filtered_vs_smoothed(head)), fmt=lambda v: f"{v:.0%}"),
+            "dvr": heatmap(
+                _row_normalize(decoded_vs_realized(head, close)), fmt=lambda v: f"{v:.0%}"
+            ),
+            "var": var_chart(head.var_forecasts),
+        }
+
+    def export_figures(self, out_dir: Path, names: Sequence[str] | None = None) -> dict[str, Path]:
+        """Write charts as PNG files (e.g. for a README); returns name -> path."""
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        figures = self.figures()
+        written: dict[str, Path] = {}
+        for name in names or list(figures):
+            path = out_dir / f"{name}.png"
+            path.write_bytes(base64.b64decode(figures[name]))
+            written[name] = path
+        return written
+
+    def html(self) -> str:
+        ab = self._ablation
+        head = ab.results[ab.headline]
+        cfg = head.config
+        periods = cfg.run.annualization
+        close = self._bars["close"]
+        start = head.first_decision
+        assert start is not None, "headline run never became ready"
+        curves = self._curves()
+        bench = curves[f"{head.symbol} buy & hold"]
         summaries = {
             name: summarize(series, None if "buy & hold" in name else bench, periods=periods)
             for name, series in curves.items()
@@ -483,9 +581,7 @@ class TearSheet:
             index=range(1, len(episodes) + 1),
         )
 
-        regimes = head.regimes["regime"]
-        transition_mean, transition_std = mean_transition_matrix(head)
-        transition_mean.index.name, transition_mean.columns.name = "from", "to"
+        transition_mean, _ = mean_transition_matrix(head)
         fvs = filtered_vs_smoothed(head)
         dvr = decoded_vs_realized(head, close)
         attribution = regime_attribution(head, close, periods)
@@ -557,20 +653,7 @@ class TearSheet:
             )
         )
 
-        figures = {
-            "growth": growth_chart(curves),
-            "drawdown": drawdown_chart(curves),
-            "rolling": rolling_sharpe_chart(curves),
-            "timeline": regime_timeline_chart(close, regimes),
-            "probs": probability_chart(probability_frame(head)),
-            "exposure": exposure_chart(head.equity["weight"].loc[start:]),
-            "transition": heatmap(
-                transition_mean, fmt=lambda v: f"{v:.3f}", annotations=transition_std
-            ),
-            "fvs": heatmap(_row_normalize(fvs), fmt=lambda v: f"{v:.0%}"),
-            "dvr": heatmap(_row_normalize(dvr), fmt=lambda v: f"{v:.0%}"),
-            "var": var_chart(head.var_forecasts),
-        }
+        figures = self.figures()
 
         def fig(key: str, caption: str) -> str:
             return f'<figure><img alt="{html.escape(caption)}" src="data:image/png;base64,{figures[key]}"><figcaption>{caption}</figcaption></figure>'
@@ -614,6 +697,10 @@ class TearSheet:
             "ratio for the number of configurations tried (all rows marked as trials, winners and "
             "losers). The p-value tests the Sharpe difference against the headline with a paired "
             "stationary bootstrap (mean block 21 bars).</p>",
+            fig(
+                "ablation",
+                "Sharpe ratio by variant (± 1 standard error). Blue: headline. Orange: buy & hold.",
+            ),
             '<div class="scroll">'
             + _table(table.drop(columns=["description"]), ablation_formats)
             + "</div>",
